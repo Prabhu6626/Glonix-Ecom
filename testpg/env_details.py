@@ -1,3 +1,0 @@
-salt_key = "MzVlNTZjNGUtNzgxYS00MmUxLTg3ZTEtYzA5MmZhYzA5ZGJk"
-merchant_id = "TEST_M223YD64R783K_25041"
-
