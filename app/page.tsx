@@ -296,58 +296,6 @@ const HomePage = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-card border-t border-border py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold">G</span>
-                </div>
-                <span className="font-heading font-bold text-lg">Glonix Electronics</span>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Professional PCB fabrication and assembly services since 2017.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Services</h4>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>PCB Fabrication</div>
-                <div>PCB Assembly</div>
-                <div>Component Sourcing</div>
-                <div>Custom Development</div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>About Us</div>
-                <div>Contact</div>
-                <div>Careers</div>
-                <div>Blog</div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Contact</h4>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>📞 78068 32035</div>
-                <div>📧 info@glonix.in</div>
-                <div>📍 Chennai, Tamil Nadu</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; 2024 Glonix Electronics Private Limited. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }
