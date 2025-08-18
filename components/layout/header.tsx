@@ -242,10 +242,7 @@ export function Header() {
         </div>
       </div>
 
-      {/* Development banner */}
-      <div className="bg-gradient-to-r from-lime-400 to-lime-500 text-gray-900 text-center py-1 text-sm font-bold">
-        UNDER DEVELOPMENT - Enhanced Features Coming Soon
-      </div>
+      
     </header>
   )
 }

@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Database configuration
-MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27018")
+MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
 DATABASE_NAME = "glonix_electronics"
 
 class DatabaseManager:
