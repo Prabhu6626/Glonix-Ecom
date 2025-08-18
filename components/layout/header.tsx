@@ -1,53 +1,66 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { Search, Heart, ShoppingCart, Menu, ChevronDown, Phone, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useAuth } from "@/hooks/use-auth"
+import type React from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import {
+  Search,
+  Heart,
+  ShoppingCart,
+  Menu,
+  ChevronDown,
+  Phone,
+  User,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useAuth } from "@/hooks/use-auth";
 
 export function Header() {
-  const { user, logout } = useAuth()
-  const router = useRouter()
-  const [cartItemCount, setCartItemCount] = useState(0)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const [cartItemCount, setCartItemCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Load cart count from localStorage
-    const storedCart = localStorage.getItem("cart")
+    const storedCart = localStorage.getItem("cart");
     if (storedCart) {
       try {
-        const parsedCart = JSON.parse(storedCart)
-        setCartItemCount(parsedCart.length)
+        const parsedCart = JSON.parse(storedCart);
+        setCartItemCount(parsedCart.length);
       } catch (err) {
-        console.error("Failed to parse cart data:", err)
+        console.error("Failed to parse cart data:", err);
       }
     }
-  }, [])
+  }, []);
 
   const handleLogout = async () => {
     try {
-      await logout()
-      router.push("/login")
+      await logout();
+      router.push("/login");
     } catch (error) {
-      console.error("Logout failed:", error)
+      console.error("Logout failed:", error);
     }
-  }
+  };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/product?search=${encodeURIComponent(searchQuery)}`)
+      router.push(`/product?search=${encodeURIComponent(searchQuery)}`);
     }
-  }
+  };
 
   const navItems = [
     { name: "Home", href: "/" },
@@ -64,7 +77,7 @@ export function Header() {
     },
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
-  ]
+  ];
 
   return (
     <header className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
@@ -90,8 +103,12 @@ export function Header() {
                   <ChevronDown className="h-3 w-3" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => router.push("/dashboard")}>Dashboard</DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => router.push("/dashboard")}>
+                    Dashboard
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout}>
+                    Logout
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
@@ -109,7 +126,7 @@ export function Header() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <Image
-              src="/src/assets/logo.png"
+              src="../assets/logo.png"
               alt="Glonix Electronics"
               width={120}
               height={48}
@@ -118,7 +135,10 @@ export function Header() {
           </Link>
 
           {/* Search bar - Desktop */}
-          <form onSubmit={handleSearchSubmit} className="hidden md:flex flex-1 max-w-xl mx-8">
+          <form
+            onSubmit={handleSearchSubmit}
+            className="hidden md:flex flex-1 max-w-xl mx-8"
+          >
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
               <Input
@@ -137,7 +157,12 @@ export function Header() {
               <Heart className="h-5 w-5" />
             </Button>
 
-            <Button variant="ghost" size="icon" className="relative" onClick={() => router.push("/cart")}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              onClick={() => router.push("/cart")}
+            >
               <ShoppingCart className="h-5 w-5" />
               {cartItemCount > 0 && (
                 <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-lime-500 text-xs">
@@ -145,6 +170,7 @@ export function Header() {
                 </Badge>
               )}
             </Button>
+
 
             {/* Mobile menu trigger */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -182,7 +208,10 @@ export function Header() {
                             <DropdownMenuContent className="w-full">
                               {item.submenu.map((subItem) => (
                                 <DropdownMenuItem key={subItem.name} asChild>
-                                  <Link href={subItem.href} onClick={() => setMobileMenuOpen(false)}>
+                                  <Link
+                                    href={subItem.href}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                  >
                                     {subItem.name}
                                   </Link>
                                 </DropdownMenuItem>
@@ -241,11 +270,6 @@ export function Header() {
           </nav>
         </div>
       </div>
-
-      {/* Development banner */}
-      <div className="bg-gradient-to-r from-lime-400 to-lime-500 text-gray-900 text-center py-1 text-sm font-bold">
-        UNDER DEVELOPMENT - Enhanced Features Coming Soon
-      </div>
     </header>
-  )
+  );
 }

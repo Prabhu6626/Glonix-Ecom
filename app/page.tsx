@@ -96,10 +96,8 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Modern Header */}
-      <header className="bg-card/50 backdrop-blur-sm border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+        <div className="container mx-auto px-4 flex items-center justify-between">
+          {/* <div className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-lg">G</span>
             </div>
@@ -107,9 +105,9 @@ const HomePage = () => {
               <h1 className="font-heading font-bold text-xl text-foreground">Glonix Electronics</h1>
               <p className="text-xs text-muted-foreground">PCB Solutions & EMS</p>
             </div>
-          </div>
+          </div> */}
 
-          <nav className="hidden md:flex items-center space-x-6">
+          {/* <nav className="hidden md:flex items-center space-x-6">
             <Button variant="ghost" onClick={() => router.push("/")}>
               Home
             </Button>
@@ -118,24 +116,10 @@ const HomePage = () => {
             </Button>
             <Button variant="ghost">Services</Button>
             <Button variant="ghost">Contact</Button>
-          </nav>
+          </nav> */}
 
-          <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
-              <Button variant="outline" onClick={() => router.push("/dashboard")}>
-                Dashboard
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" onClick={() => router.push("/login")}>
-                  Login
-                </Button>
-                <Button onClick={() => router.push("/login")}>Get Started</Button>
-              </>
-            )}
-          </div>
+          
         </div>
-      </header>
 
       {/* Hero Section with 3D Animation */}
       <section ref={heroRef} className="relative overflow-hidden gradient-tech">

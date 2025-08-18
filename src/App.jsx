@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 
 import LoginPage from "./Page/LoginPage";    //./component/LoginPage/LoginPage
-import HomePage from "./Page/Homepage";      //./component/Homepage/HomePage
+// import HomePage from "./Page/Homepage";      //./component/Homepage/HomePage
 import AboutPage from "./Page/AboutPage";    //./component/AboutPage/AboutPage
 import Navbar from "./components/Navbar";
 import Assembly from "./components/Assembly/Assembly";
@@ -72,14 +72,14 @@ const App = () => {
             element={<LoginPage onLoginSuccess={handleLoginSuccess} />}
           />
 
-          <Route
+          {/* <Route
             path="/home"
             element={
               <PrivateRoute>
                 <HomePage />
               </PrivateRoute>
             }
-          />
+          /> */}
           <Route path="/payment/callback" element={<PaymentCallback />} />
           <Route path="/epayment/ecallback" element={<EPaymentCallback />} />
           <Route path="/addtocartpayment/addtocartcallback" element={<AddtocartCallback />} />
