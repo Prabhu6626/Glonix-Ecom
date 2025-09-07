@@ -106,6 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Store login timestamp for session management
         localStorage.setItem("login_timestamp", Date.now().toString())
 
+        // Dispatch custom event to notify cart of user change
+        window.dispatchEvent(new CustomEvent("userChanged"))
+
         return { success: true }
       } else {
         setError(result.error || "Login failed")
@@ -141,6 +144,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Store registration timestamp
           localStorage.setItem("login_timestamp", Date.now().toString())
 
+          // Dispatch custom event to notify cart of user change
+          window.dispatchEvent(new CustomEvent("userChanged"))
+
           return { success: true }
         } else {
           setError(result.error || "Registration failed")
@@ -162,6 +168,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null)
     localStorage.removeItem("login_timestamp")
     localStorage.removeItem("redirectAfterLogin")
+    
+    // Dispatch custom event to notify cart of user change
+    window.dispatchEvent(new CustomEvent("userChanged"))
+    
     AuthService.logout()
   }, [])
 

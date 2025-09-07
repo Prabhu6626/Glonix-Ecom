@@ -12,9 +12,11 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/hooks/use-auth"
+import { useWishlist } from "@/hooks/use-wishlist"
 
 export function Header() {
   const { user, logout } = useAuth()
+  const { itemCount: wishlistItemCount } = useWishlist()
   const router = useRouter()
   const [cartItemCount, setCartItemCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState("")
@@ -91,6 +93,9 @@ export function Header() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => router.push("/dashboard")}>Dashboard</DropdownMenuItem>
+                  {user.role === "admin" && (
+                    <DropdownMenuItem onClick={() => router.push("/admin")}>Admin Dashboard</DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -108,13 +113,7 @@ export function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <Image
-              src="/src/assets/logo.png"
-              alt="Glonix Electronics"
-              width={120}
-              height={48}
-              className="h-12 w-auto"
-            />
+            <Image src="../assets/logo.png" alt="Glonix Electronics" width={120} height={48} className="h-12 w-auto" />
           </Link>
 
           {/* Search bar - Desktop */}
@@ -133,8 +132,18 @@ export function Header() {
 
           {/* Action buttons */}
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="icon" className="hidden md:flex">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden md:flex relative"
+              onClick={() => router.push("/wishlist")}
+            >
               <Heart className="h-5 w-5" />
+              {wishlistItemCount > 0 && (
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 bg-red-500 text-xs">
+                  {wishlistItemCount}
+                </Badge>
+              )}
             </Button>
 
             <Button variant="ghost" size="icon" className="relative" onClick={() => router.push("/cart")}>
@@ -240,11 +249,6 @@ export function Header() {
             ))}
           </nav>
         </div>
-      </div>
-
-      {/* Development banner */}
-      <div className="bg-gradient-to-r from-lime-400 to-lime-500 text-gray-900 text-center py-1 text-sm font-bold">
-        UNDER DEVELOPMENT - Enhanced Features Coming Soon
       </div>
     </header>
   )

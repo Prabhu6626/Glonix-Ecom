@@ -6,91 +6,53 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { useWishlist } from "@/hooks/use-wishlist"
+import { useCart } from "@/hooks/use-cart"
 import { Heart, ShoppingCart, Trash2, Star, ArrowLeft, Package } from "lucide-react"
-
-interface WishlistItem {
-  id: string
-  name: string
-  sku: string
-  price: number
-  image: string
-  inStock: boolean
-  rating: number
-  reviews: number
-}
 
 function WishlistContent() {
   const router = useRouter()
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([])
+  const { items: wishlistItems, removeItem, clearWishlist } = useWishlist()
+  const { addItem: addToCart } = useCart()
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Load wishlist from localStorage
-    const storedWishlist = localStorage.getItem("wishlist")
-    if (storedWishlist) {
-      try {
-        const parsedWishlist = JSON.parse(storedWishlist)
-        setWishlistItems(parsedWishlist)
-      } catch (error) {
-        console.error("Failed to parse wishlist data:", error)
-      }
-    }
-    setLoading(false)
+    // Small delay to ensure wishlist context is loaded
+    setTimeout(() => {
+      setLoading(false)
+    }, 100)
   }, [])
 
-  const updateWishlist = (updatedItems: WishlistItem[]) => {
-    setWishlistItems(updatedItems)
-    localStorage.setItem("wishlist", JSON.stringify(updatedItems))
-  }
-
-  const removeFromWishlist = (id: string) => {
-    const updatedItems = wishlistItems.filter((item) => item.id !== id)
-    updateWishlist(updatedItems)
-  }
-
-  const addToCart = (item: WishlistItem) => {
-    // Add to cart
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]")
-    const cartItem = { ...item, quantity: 1 }
-
-    // Check if item already exists in cart
-    const existingItemIndex = cart.findIndex((cartItem: any) => cartItem.id === item.id)
-    if (existingItemIndex > -1) {
-      cart[existingItemIndex].quantity += 1
-    } else {
-      cart.push(cartItem)
-    }
-
-    localStorage.setItem("cart", JSON.stringify(cart))
-
-    // Remove from wishlist
-    removeFromWishlist(item.id)
-
-    // Show success message or redirect
-    console.log("Added to cart:", item)
-  }
-
-  const moveAllToCart = () => {
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]")
-
-    wishlistItems.forEach((item) => {
-      if (item.inStock) {
-        const cartItem = { ...item, quantity: 1 }
-        const existingItemIndex = cart.findIndex((cartItem: any) => cartItem.id === item.id)
-
-        if (existingItemIndex > -1) {
-          cart[existingItemIndex].quantity += 1
-        } else {
-          cart.push(cartItem)
-        }
-      }
+  const handleAddToCart = (item: any) => {
+    addToCart({
+      id: item.id,
+      name: item.name,
+      sku: item.sku,
+      price: item.price,
+      image: item.image,
+      inStock: item.inStock,
     })
 
-    localStorage.setItem("cart", JSON.stringify(cart))
+    // Remove from wishlist after adding to cart
+    removeItem(item.id)
+  }
 
-    // Clear wishlist of in-stock items
-    const remainingItems = wishlistItems.filter((item) => !item.inStock)
-    updateWishlist(remainingItems)
+  const handleMoveAllToCart = () => {
+    const inStockItems = wishlistItems.filter((item) => item.inStock)
+
+    inStockItems.forEach((item) => {
+      addToCart({
+        id: item.id,
+        name: item.name,
+        sku: item.sku,
+        price: item.price,
+        image: item.image,
+        inStock: item.inStock,
+      })
+    })
+
+    // Remove all in-stock items from wishlist
+    inStockItems.forEach((item) => removeItem(item.id))
   }
 
   if (loading) {
@@ -121,13 +83,19 @@ function WishlistContent() {
           </div>
 
           {wishlistItems.length > 0 && (
-            <Button
-              onClick={moveAllToCart}
-              className="bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800"
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Add All to Cart
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => clearWishlist()} className="bg-transparent">
+                Clear All
+              </Button>
+              <Button
+                onClick={handleMoveAllToCart}
+                className="bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800"
+                disabled={!wishlistItems.some((item) => item.inStock)}
+              >
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Add All to Cart
+              </Button>
+            </div>
           )}
         </div>
 
@@ -158,7 +126,7 @@ function WishlistContent() {
                     size="sm"
                     variant="secondary"
                     className="absolute top-2 right-2 h-8 w-8 p-0"
-                    onClick={() => removeFromWishlist(item.id)}
+                    onClick={() => removeItem(item.id)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -194,7 +162,7 @@ function WishlistContent() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => addToCart(item)}
+                        onClick={() => handleAddToCart(item)}
                         disabled={!item.inStock}
                         className="bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800"
                       >

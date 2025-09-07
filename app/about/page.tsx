@@ -88,37 +88,6 @@ function AboutContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-cyan-50 to-lime-50">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 text-cyan-700 hover:text-cyan-800 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back
-            </button>
-            <div className="w-10 h-10 bg-gradient-to-br from-cyan-600 to-cyan-800 rounded-xl flex items-center justify-center ml-4">
-              <span className="text-white font-bold text-lg">G</span>
-            </div>
-            <div>
-              <h1 className="font-heading font-bold text-xl text-slate-900">Glonix Electronics</h1>
-              <p className="text-xs text-slate-600">About Us</p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <Button variant="ghost" onClick={() => router.push("/")}>
-              Home
-            </Button>
-            <Button variant="ghost" onClick={() => router.push("/dashboard")}>
-              Dashboard
-            </Button>
-          </div>
-        </div>
-      </header>
-
       <div className="container mx-auto px-4 py-12">
         {/* Hero Section */}
         <div className="text-center mb-16">

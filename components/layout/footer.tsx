@@ -52,8 +52,8 @@ export function Footer() {
     <footer className="bg-gradient-to-b from-gray-900 to-gray-800 text-white">
       {/* Newsletter Section */}
       <div className="border-b border-gray-700">
-        <div className="container mx-auto px-4 py-12">
-          <div className="max-w-4xl mx-auto text-center">
+        {/* <div className="container mx-auto px-4 py-12"> */}
+          {/* <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-lime-400 bg-clip-text text-transparent">
               Stay Updated with Glonix
             </h2>
@@ -87,8 +87,8 @@ export function Footer() {
                 Subscribe
               </Button>
             </form>
-          </div>
-        </div>
+          </div> */}
+        {/* </div> */}
       </div>
 
       {/* Main Footer Content */}

@@ -1,13 +1,15 @@
-// Authentication utilities for frontend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-
+// Real-time authentication system with localStorage persistence
 export interface User {
   id: string
   email: string
   full_name: string
   company?: string
   phone?: string
+  role: "admin" | "customer"
+  is_active: boolean
+  fabrication_status: 0 | 1 | 2 // 0: not visited, 1: visited (checked price), 2: added to cart
   created_at: string
+  updated_at: string
 }
 
 export interface LoginData {
@@ -23,158 +25,170 @@ export interface RegisterData {
   phone?: string
 }
 
+// Default admin user - hardcoded for initial setup
+const DEFAULT_ADMIN: User = {
+  id: "admin-1",
+  email: "admin@glonix.com",
+  full_name: "Admin User",
+  company: "Glonix Electronics",
+  phone: "+1-555-0100",
+  role: "admin",
+  is_active: true,
+  fabrication_status: 0,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+}
+
 export class AuthService {
   private static readonly TOKEN_KEY = "access_token"
-  private static readonly REFRESH_KEY = "refresh_token"
-  private static readonly MAX_RETRY_ATTEMPTS = 3
-  private static readonly RETRY_DELAY = 1000
+  private static readonly CURRENT_USER_KEY = "current_user"
+  private static readonly USERS_KEY = "glonix_users"
+  private static readonly ADMIN_PASSWORD = "admin123" // Default admin password
 
-  private static getToken(): string | null {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem(this.TOKEN_KEY)
+  // Initialize default admin user if not exists
+  private static initializeDefaultAdmin(): void {
+    if (typeof window === "undefined") return
+
+    const users = this.getAllUsers()
+    const adminExists = users.some((user) => user.email === DEFAULT_ADMIN.email)
+
+    if (!adminExists) {
+      users.push(DEFAULT_ADMIN)
+      localStorage.setItem(this.USERS_KEY, JSON.stringify(users))
     }
-    return null
+  }
+
+  private static getAllUsers(): User[] {
+    if (typeof window === "undefined") return []
+
+    const usersData = localStorage.getItem(this.USERS_KEY)
+    return usersData ? JSON.parse(usersData) : []
+  }
+
+  private static saveUsers(users: User[]): void {
+    if (typeof window === "undefined") return
+    localStorage.setItem(this.USERS_KEY, JSON.stringify(users))
+  }
+
+  private static generateToken(user: User): string {
+    const payload = {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      exp: Math.floor(Date.now() / 1000) + 24 * 60 * 60, // 24 hours
+    }
+    return btoa(JSON.stringify(payload))
   }
 
   private static setToken(token: string): void {
-    if (typeof window !== "undefined") {
-      localStorage.setItem(this.TOKEN_KEY, token)
-      // Set cookie for middleware
-      const maxAge = 30 * 24 * 60 * 60 // 30 days
-      document.cookie = `${this.TOKEN_KEY}=${token}; path=/; max-age=${maxAge}; SameSite=Lax; Secure=${location.protocol === "https:"}`
-    }
+    if (typeof window === "undefined") return
+    localStorage.setItem(this.TOKEN_KEY, token)
+    document.cookie = `${this.TOKEN_KEY}=${token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`
   }
 
   private static removeToken(): void {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem(this.TOKEN_KEY)
-      localStorage.removeItem(this.REFRESH_KEY)
-      // Clear cookie
-      document.cookie = `${this.TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
-    }
-  }
-
-  private static async makeRequest(url: string, options: RequestInit, retryCount = 0): Promise<Response> {
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-      })
-      return response
-    } catch (error) {
-      if (retryCount < this.MAX_RETRY_ATTEMPTS) {
-        await new Promise((resolve) => setTimeout(resolve, this.RETRY_DELAY * (retryCount + 1)))
-        return this.makeRequest(url, options, retryCount + 1)
-      }
-      throw error
-    }
+    if (typeof window === "undefined") return
+    localStorage.removeItem(this.TOKEN_KEY)
+    localStorage.removeItem(this.CURRENT_USER_KEY)
+    document.cookie = `${this.TOKEN_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`
   }
 
   static async login(data: LoginData): Promise<{ success: boolean; error?: string }> {
-    try {
-      const response = await this.makeRequest(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      })
+    this.initializeDefaultAdmin()
 
-      if (response.ok) {
-        const result = await response.json()
-        this.setToken(result.access_token)
+    const users = this.getAllUsers()
+    const user = users.find((u) => u.email === data.email && u.is_active)
 
-        if (typeof window !== "undefined") {
-          localStorage.setItem("session_start", Date.now().toString())
-        }
-
-        return { success: true }
-      } else {
-        const error = await response.json()
-        return { success: false, error: error.detail || "Login failed" }
-      }
-    } catch (error) {
-      console.error("Login error:", error)
-      return { success: false, error: "Network error. Please check your connection." }
+    if (!user) {
+      return { success: false, error: "Invalid email or password" }
     }
+
+    // Check password (admin has hardcoded password, others would need proper hashing)
+    const isValidPassword =
+      user.email === DEFAULT_ADMIN.email ? data.password === this.ADMIN_PASSWORD : data.password === "password123" // Temporary for demo users
+
+    if (!isValidPassword) {
+      return { success: false, error: "Invalid email or password" }
+    }
+
+    const token = this.generateToken(user)
+    this.setToken(token)
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(user))
+      localStorage.setItem("session_start", Date.now().toString())
+    }
+
+    return { success: true }
   }
 
   static async register(data: RegisterData): Promise<{ success: boolean; error?: string }> {
-    try {
-      const response = await this.makeRequest(`${API_BASE_URL}/auth/register`, {
-        method: "POST",
-        body: JSON.stringify(data),
-      })
+    this.initializeDefaultAdmin()
 
-      if (response.ok) {
-        const result = await response.json()
-        this.setToken(result.access_token)
+    const users = this.getAllUsers()
 
-        if (typeof window !== "undefined") {
-          localStorage.setItem("session_start", Date.now().toString())
-        }
-
-        return { success: true }
-      } else {
-        const error = await response.json()
-        return { success: false, error: error.detail || "Registration failed" }
-      }
-    } catch (error) {
-      console.error("Registration error:", error)
-      return { success: false, error: "Network error. Please check your connection." }
+    // Check if user already exists
+    if (users.some((u) => u.email === data.email)) {
+      return { success: false, error: "User with this email already exists" }
     }
+
+    const newUser: User = {
+      id: `user-${Date.now()}`,
+      email: data.email,
+      full_name: data.full_name,
+      company: data.company,
+      phone: data.phone,
+      role: "customer",
+      is_active: true,
+      fabrication_status: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+
+    users.push(newUser)
+    this.saveUsers(users)
+
+    const token = this.generateToken(newUser)
+    this.setToken(token)
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(newUser))
+      localStorage.setItem("session_start", Date.now().toString())
+    }
+
+    return { success: true }
   }
 
   static async getCurrentUser(): Promise<User | null> {
-    const token = this.getToken()
-    if (!token) return null
+    if (typeof window === "undefined") return null
+
+    const userData = localStorage.getItem(this.CURRENT_USER_KEY)
+    if (!userData) return null
 
     try {
-      const response = await this.makeRequest(`${API_BASE_URL}/auth/me`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        return await response.json()
-      } else if (response.status === 401) {
-        // Token expired or invalid
-        this.removeToken()
-        return null
-      } else {
-        throw new Error(`HTTP ${response.status}`)
-      }
-    } catch (error) {
-      console.error("Get current user error:", error)
-      this.removeToken()
+      return JSON.parse(userData)
+    } catch {
       return null
     }
   }
 
   static async verifyToken(): Promise<boolean> {
-    const token = this.getToken()
+    if (typeof window === "undefined") return false
+
+    const token = localStorage.getItem(this.TOKEN_KEY)
     if (!token) return false
 
     try {
-      const response = await this.makeRequest(`${API_BASE_URL}/auth/verify`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      const payload = JSON.parse(atob(token))
+      const currentTime = Date.now() / 1000
 
-      if (response.ok) {
-        return true
-      } else if (response.status === 401) {
+      if (payload.exp && payload.exp < currentTime) {
         this.removeToken()
         return false
-      } else {
-        return false
       }
-    } catch (error) {
-      console.error("Token verification error:", error)
+
+      return true
+    } catch {
       this.removeToken()
       return false
     }
@@ -184,21 +198,20 @@ export class AuthService {
     this.removeToken()
 
     if (typeof window !== "undefined") {
-      // Clear all auth-related storage
       localStorage.removeItem("session_start")
       localStorage.removeItem("user_preferences")
-
-      // Redirect to home page
       window.location.href = "/"
     }
   }
 
   static isAuthenticated(): boolean {
-    const token = this.getToken()
+    if (typeof window === "undefined") return false
+
+    const token = localStorage.getItem(this.TOKEN_KEY)
     if (!token) return false
 
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]))
+      const payload = JSON.parse(atob(token))
       const currentTime = Date.now() / 1000
 
       if (payload.exp && payload.exp < currentTime) {
@@ -207,9 +220,22 @@ export class AuthService {
       }
 
       return true
-    } catch (error) {
-      // Invalid token format
+    } catch {
       this.removeToken()
+      return false
+    }
+  }
+
+  static isAdmin(): boolean {
+    if (typeof window === "undefined") return false
+
+    const userData = localStorage.getItem(this.CURRENT_USER_KEY)
+    if (!userData) return false
+
+    try {
+      const user = JSON.parse(userData)
+      return user.role === "admin"
+    } catch {
       return false
     }
   }
@@ -226,5 +252,55 @@ export class AuthService {
   static isSessionExpired(): boolean {
     const maxSessionDuration = 24 * 60 * 60 * 1000 // 24 hours
     return this.getSessionDuration() > maxSessionDuration
+  }
+
+  static updateFabricationStatus(userId: string, status: 0 | 1 | 2): boolean {
+    if (typeof window === "undefined") return false
+
+    try {
+      const users = this.getAllUsers()
+      const userIndex = users.findIndex((u) => u.id === userId)
+      
+      if (userIndex === -1) {
+        console.error("User not found:", userId)
+        return false
+      }
+
+      users[userIndex].fabrication_status = status
+      users[userIndex].updated_at = new Date().toISOString()
+      this.saveUsers(users)
+
+      // Update current user data if it's the same user
+      const currentUserData = localStorage.getItem(this.CURRENT_USER_KEY)
+      if (currentUserData) {
+        try {
+          const currentUser = JSON.parse(currentUserData)
+          if (currentUser.id === userId) {
+            const updatedUser = users[userIndex]
+            localStorage.setItem(this.CURRENT_USER_KEY, JSON.stringify(updatedUser))
+          }
+        } catch (error) {
+          console.error("Failed to parse current user data:", error)
+        }
+      }
+
+      console.log(`Updated fabrication status for user ${userId} to ${status}`)
+      return true
+    } catch (error) {
+      console.error("Failed to update fabrication status:", error)
+      return false
+    }
+  }
+
+  static getUsersByFabricationStatus(status: 0 | 1 | 2): User[] {
+    if (typeof window === "undefined") return []
+    
+    try {
+      const users = this.getAllUsers()
+      return users.filter((user) => user.fabrication_status === status && user.role === "customer")
+    } catch (error) {
+      console.error("Failed to get users by fabrication status:", error)
+      return []
+    }
   }
 }

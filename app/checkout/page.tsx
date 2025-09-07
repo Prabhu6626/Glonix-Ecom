@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { ProtectedRoute } from "@/components/auth/protected-route"
 import { useAuth } from "@/hooks/use-auth"
+import { AuthService } from "@/lib/auth"
 import { CreditCard, Truck, Shield, ArrowLeft, Package, MapPin } from "lucide-react"
 
 interface CartItem {
@@ -82,17 +83,82 @@ function CheckoutContent() {
   const [cardName, setCardName] = useState("")
 
   useEffect(() => {
-    // Load cart from localStorage
-    const storedCart = localStorage.getItem("cart")
-    if (storedCart) {
+    // Load user-specific cart from localStorage
+    const loadUserCart = () => {
+      const userData = localStorage.getItem("current_user")
+      console.log("Checkout loading - userData:", userData)
+      
+      if (!userData) {
+        console.log("No user data found, clearing cart")
+        setCartItems([])
+        setLoading(false)
+        return
+      }
+
       try {
-        const parsedCart = JSON.parse(storedCart)
-        setCartItems(parsedCart)
+        const user = JSON.parse(userData)
+        const userId = user.id
+        const cartKey = `cart_${userId}`
+        console.log("Loading cart for user:", userId, "with key:", cartKey)
+        
+        const storedCart = localStorage.getItem(cartKey)
+        console.log("Stored cart data:", storedCart)
+        
+        if (storedCart) {
+          const parsedCart = JSON.parse(storedCart)
+          console.log("Parsed cart:", parsedCart)
+          
+          // Handle both array format (new) and single object format (legacy)
+          if (Array.isArray(parsedCart)) {
+            console.log("Setting array cart items:", parsedCart)
+            setCartItems(parsedCart)
+          } else if (parsedCart && typeof parsedCart === 'object') {
+            // Convert single quotation object to cart item format
+            const cartItem: CartItem = {
+              id: parsedCart.order_id || `quotation-${Date.now()}`,
+              name: `PCB Fabrication - ${parsedCart.Layers} layers`,
+              sku: `PCB-${parsedCart.Layers}-${parsedCart.Thickness}`,
+              price: parseFloat(parsedCart.price) || 0,
+              image: parsedCart.File_Url || "/placeholder-pcb.png",
+              quantity: 1
+            }
+            console.log("Converting single object to cart item:", cartItem)
+            setCartItems([cartItem])
+          }
+        } else {
+          console.log("No stored cart found for user")
+          setCartItems([])
+        }
       } catch (error) {
-        console.error("Failed to parse cart data:", error)
+        console.error("Failed to parse user or cart data:", error)
+        setCartItems([])
+      }
+      
+      setLoading(false)
+    }
+
+    loadUserCart()
+
+    // Listen for storage changes (user login/logout)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "current_user") {
+        loadUserCart()
       }
     }
-    setLoading(false)
+
+    window.addEventListener("storage", handleStorageChange)
+    
+    // Also listen for custom events (for same-tab changes)
+    const handleUserChange = () => {
+      loadUserCart()
+    }
+
+    window.addEventListener("userChanged", handleUserChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("userChanged", handleUserChange)
+    }
   }, [])
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
@@ -107,31 +173,99 @@ function CheckoutContent() {
       // Simulate order processing
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
-      // Create order object
+      // Create order object with proper structure matching Order interface
       const order = {
-        id: `ORD-${Date.now()}`,
-        userId: user?.id,
-        items: cartItems,
-        shippingAddress,
-        billingAddress: sameAsShipping ? shippingAddress : billingAddress,
-        shippingMethod,
-        paymentMethod,
+        id: `order-${Date.now()}`,
+        order_number: `ORD-${new Date().getFullYear()}-${String(Date.now()).slice(-3)}`,
+        user_id: user?.id || "",
+        user_name: user?.full_name || "",
+        user_email: user?.email || "",
+        items: cartItems.map(item => ({
+          product_id: item.id,
+          product_name: item.name,
+          product_sku: item.sku,
+          price: item.price,
+          quantity: item.quantity,
+          total: item.price * item.quantity
+        })),
+        shipping_address: {
+          first_name: shippingAddress.firstName,
+          last_name: shippingAddress.lastName,
+          company: shippingAddress.company || "",
+          address1: shippingAddress.address1,
+          address2: shippingAddress.address2 || "",
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          zip_code: shippingAddress.zipCode,
+          country: shippingAddress.country,
+          phone: shippingAddress.phone || ""
+        },
+        billing_address: sameAsShipping ? {
+          first_name: shippingAddress.firstName,
+          last_name: shippingAddress.lastName,
+          company: shippingAddress.company || "",
+          address1: shippingAddress.address1,
+          address2: shippingAddress.address2 || "",
+          city: shippingAddress.city,
+          state: shippingAddress.state,
+          zip_code: shippingAddress.zipCode,
+          country: shippingAddress.country,
+          phone: shippingAddress.phone || ""
+        } : {
+          first_name: billingAddress.firstName,
+          last_name: billingAddress.lastName,
+          company: billingAddress.company || "",
+          address1: billingAddress.address1,
+          address2: billingAddress.address2 || "",
+          city: billingAddress.city,
+          state: billingAddress.state,
+          zip_code: billingAddress.zipCode,
+          country: billingAddress.country,
+          phone: billingAddress.phone || ""
+        },
+        shipping_method: shippingMethod,
+        payment_method: paymentMethod,
         subtotal,
-        shippingCost,
+        shipping_cost: shippingCost,
         tax,
         total,
-        status: "confirmed",
-        createdAt: new Date().toISOString(),
-        estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        status: "confirmed" as const,
+        payment_status: "completed" as const,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        estimated_delivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       }
 
-      // Save order to localStorage (in real app, this would be API call)
-      const orders = JSON.parse(localStorage.getItem("orders") || "[]")
-      orders.push(order)
-      localStorage.setItem("orders", JSON.stringify(orders))
-
-      // Clear cart
-      localStorage.removeItem("cart")
+      // Save order to user-specific localStorage and clear cart
+      const userData = localStorage.getItem("current_user")
+      if (userData) {
+        try {
+          const user = JSON.parse(userData)
+          const userId = user.id
+          const ordersKey = `orders_${userId}`
+          const cartKey = `cart_${userId}`
+          
+          // Get existing user orders
+          const existingOrders = JSON.parse(localStorage.getItem(ordersKey) || "[]")
+          existingOrders.push(order)
+          localStorage.setItem(ordersKey, JSON.stringify(existingOrders))
+          
+          // Also save to global orders for admin view
+          const globalOrders = JSON.parse(localStorage.getItem("orders") || "[]")
+          globalOrders.push(order)
+          localStorage.setItem("orders", JSON.stringify(globalOrders))
+          
+          // Clear user-specific cart
+          localStorage.removeItem(cartKey)
+          
+          // Reset fabrication status to 0 (completed checkout)
+          AuthService.updateFabricationStatus(userId, 0)
+          
+          console.log("Order saved and cart cleared for user:", userId)
+        } catch (error) {
+          console.error("Failed to save order or clear cart:", error)
+        }
+      }
 
       // Redirect to order confirmation
       router.push(`/orders/${order.id}`)

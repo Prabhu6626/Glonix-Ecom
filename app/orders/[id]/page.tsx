@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import type { Order } from "@/lib/types"
 import {
   Package,
   ArrowLeft,
@@ -21,40 +22,6 @@ import {
   Mail,
 } from "lucide-react"
 
-interface Order {
-  id: string
-  userId: string
-  items: Array<{
-    id: string
-    name: string
-    sku: string
-    price: number
-    quantity: number
-    image: string
-  }>
-  shippingAddress: {
-    firstName: string
-    lastName: string
-    company: string
-    address1: string
-    address2: string
-    city: string
-    state: string
-    zipCode: string
-    country: string
-    phone: string
-  }
-  status: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled"
-  subtotal: number
-  shippingCost: number
-  tax: number
-  total: number
-  createdAt: string
-  estimatedDelivery: string
-  trackingNumber?: string
-  shippingMethod: string
-  paymentMethod: string
-}
 
 function OrderDetailContent() {
   const router = useRouter()
@@ -63,18 +30,57 @@ function OrderDetailContent() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Load order from localStorage (in real app, this would be API call)
-    const storedOrders = localStorage.getItem("orders")
-    if (storedOrders) {
+    // Load user-specific order from localStorage
+    const loadUserOrder = () => {
+      const userData = localStorage.getItem("current_user")
+      if (!userData) {
+        setOrder(null)
+        setLoading(false)
+        return
+      }
+
       try {
-        const parsedOrders = JSON.parse(storedOrders)
-        const foundOrder = parsedOrders.find((o: Order) => o.id === params.id)
-        setOrder(foundOrder || null)
+        const user = JSON.parse(userData)
+        const userId = user.id
+        const ordersKey = `orders_${userId}`
+        const storedOrders = localStorage.getItem(ordersKey)
+        
+        if (storedOrders) {
+          const parsedOrders = JSON.parse(storedOrders)
+          const foundOrder = parsedOrders.find((o: Order) => o.id === params.id)
+          setOrder(foundOrder || null)
+        } else {
+          setOrder(null)
+        }
       } catch (error) {
         console.error("Failed to parse orders data:", error)
+        setOrder(null)
+      }
+      setLoading(false)
+    }
+
+    loadUserOrder()
+
+    // Listen for storage changes (user login/logout)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "current_user") {
+        loadUserOrder()
       }
     }
-    setLoading(false)
+
+    window.addEventListener("storage", handleStorageChange)
+    
+    // Also listen for custom events (for same-tab changes)
+    const handleUserChange = () => {
+      loadUserOrder()
+    }
+
+    window.addEventListener("userChanged", handleUserChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("userChanged", handleUserChange)
+    }
   }, [params.id])
 
   const getStatusIcon = (status: Order["status"]) => {
@@ -156,7 +162,7 @@ function OrderDetailContent() {
             </Button>
             <div>
               <h1 className="font-heading font-bold text-3xl text-slate-900">Order #{order.id}</h1>
-              <p className="text-slate-600">Placed on {new Date(order.createdAt).toLocaleDateString()}</p>
+              <p className="text-slate-600">Placed on {new Date(order.created_at).toLocaleDateString()}</p>
             </div>
           </div>
 
@@ -227,16 +233,16 @@ function OrderDetailContent() {
                       })}
                     </div>
 
-                    {order.trackingNumber && (
+                    {order.tracking_number && (
                       <div className="bg-cyan-50 p-4 rounded-lg">
                         <div className="font-medium text-cyan-900">Tracking Number</div>
-                        <div className="text-cyan-700">{order.trackingNumber}</div>
+                        <div className="text-cyan-700">{order.tracking_number}</div>
                       </div>
                     )}
 
                     {order.status !== "delivered" && (
                       <div className="text-sm text-slate-600">
-                        Estimated delivery: {new Date(order.estimatedDelivery).toLocaleDateString()}
+                        Estimated delivery: {order.estimated_delivery ? new Date(order.estimated_delivery).toLocaleDateString() : 'TBD'}
                       </div>
                     )}
                   </div>
@@ -251,19 +257,19 @@ function OrderDetailContent() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="flex gap-4 p-4 border rounded-lg">
+                  {order.items.map((item, index) => (
+                    <div key={item.product_id || index} className="flex gap-4 p-4 border rounded-lg">
                       <img
-                        src={item.image || "/placeholder.svg"}
-                        alt={item.name}
+                        src="/placeholder.svg"
+                        alt={item.product_name}
                         className="w-16 h-16 object-cover rounded"
                       />
                       <div className="flex-1">
-                        <h3 className="font-medium text-slate-900">{item.name}</h3>
-                        <p className="text-sm text-slate-500">SKU: {item.sku}</p>
+                        <h3 className="font-medium text-slate-900">{item.product_name}</h3>
+                        <p className="text-sm text-slate-500">SKU: {item.product_sku}</p>
                         <div className="flex items-center justify-between mt-2">
                           <span className="text-sm text-slate-600">Qty: {item.quantity}</span>
-                          <span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span>
+                          <span className="font-medium">${item.total.toFixed(2)}</span>
                         </div>
                       </div>
                     </div>
@@ -281,21 +287,27 @@ function OrderDetailContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {order.shippingAddress.firstName} {order.shippingAddress.lastName}
+                {order.shipping_address ? (
+                  <div className="space-y-1">
+                    <div className="font-medium">
+                      {order.shipping_address.first_name} {order.shipping_address.last_name}
+                    </div>
+                    {order.shipping_address.company && <div>{order.shipping_address.company}</div>}
+                    <div>{order.shipping_address.address1}</div>
+                    {order.shipping_address.address2 && <div>{order.shipping_address.address2}</div>}
+                    <div>
+                      {order.shipping_address.city}, {order.shipping_address.state} {order.shipping_address.zip_code}
+                    </div>
+                    {order.shipping_address.phone && (
+                      <div className="flex items-center gap-2 mt-2 text-sm text-slate-600">
+                        <Phone className="h-4 w-4" />
+                        {order.shipping_address.phone}
+                      </div>
+                    )}
                   </div>
-                  {order.shippingAddress.company && <div>{order.shippingAddress.company}</div>}
-                  <div>{order.shippingAddress.address1}</div>
-                  {order.shippingAddress.address2 && <div>{order.shippingAddress.address2}</div>}
-                  <div>
-                    {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
-                  </div>
-                  <div className="flex items-center gap-2 mt-2 text-sm text-slate-600">
-                    <Phone className="h-4 w-4" />
-                    {order.shippingAddress.phone}
-                  </div>
-                </div>
+                ) : (
+                  <div className="text-sm text-slate-500">No shipping address available</div>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -312,8 +324,8 @@ function OrderDetailContent() {
                   <span>${order.subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Shipping ({order.shippingMethod})</span>
-                  <span>${order.shippingCost.toFixed(2)}</span>
+                  <span>Shipping ({order.shipping_method})</span>
+                  <span>${order.shipping_cost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Tax</span>
@@ -336,7 +348,7 @@ function OrderDetailContent() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="capitalize">{order.paymentMethod} Payment</div>
+                <div className="capitalize">{order.payment_method} Payment</div>
                 <div className="text-sm text-slate-600 mt-1">Payment processed successfully</div>
               </CardContent>
             </Card>

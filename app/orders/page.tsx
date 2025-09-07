@@ -37,18 +37,60 @@ function OrdersContent() {
   const [statusFilter, setStatusFilter] = useState("all")
 
   useEffect(() => {
-    // Load orders from localStorage (in real app, this would be API call)
-    const storedOrders = localStorage.getItem("orders")
-    if (storedOrders) {
+    // Load user-specific orders from localStorage
+    const loadUserOrders = () => {
+      const userData = localStorage.getItem("current_user")
+      if (!userData) {
+        setOrders([])
+        setFilteredOrders([])
+        setLoading(false)
+        return
+      }
+
       try {
-        const parsedOrders = JSON.parse(storedOrders)
-        setOrders(parsedOrders)
-        setFilteredOrders(parsedOrders)
+        const user = JSON.parse(userData)
+        const userId = user.id
+        const ordersKey = `orders_${userId}`
+        const storedOrders = localStorage.getItem(ordersKey)
+        
+        if (storedOrders) {
+          const parsedOrders = JSON.parse(storedOrders)
+          setOrders(parsedOrders)
+          setFilteredOrders(parsedOrders)
+        } else {
+          setOrders([])
+          setFilteredOrders([])
+        }
       } catch (error) {
         console.error("Failed to parse orders data:", error)
+        setOrders([])
+        setFilteredOrders([])
+      }
+      setLoading(false)
+    }
+
+    loadUserOrders()
+
+    // Listen for storage changes (user login/logout)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "current_user") {
+        loadUserOrders()
       }
     }
-    setLoading(false)
+
+    window.addEventListener("storage", handleStorageChange)
+    
+    // Also listen for custom events (for same-tab changes)
+    const handleUserChange = () => {
+      loadUserOrders()
+    }
+
+    window.addEventListener("userChanged", handleUserChange)
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange)
+      window.removeEventListener("userChanged", handleUserChange)
+    }
   }, [])
 
   useEffect(() => {

@@ -44,6 +44,16 @@ const HomePage = () => {
     if (servicesRef.current) {
       observer.observe(servicesRef.current)
     }
+    // // Run this in the browser console
+    // localStorage.removeItem('orders');
+    // Object.keys(localStorage).forEach(key => {
+    //   if (key.startsWith('orders_')) {
+    //     localStorage.removeItem(key);
+    //   }
+    // });
+    // localStorage.removeItem('glonix_orders');
+    // console.log('All orders data cleared!');
+    // localStorage.clear()
 
     return () => observer.disconnect()
   }, [])
@@ -96,10 +106,8 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Modern Header */}
-      <header className="bg-card/50 backdrop-blur-sm border-b border-border sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
+        <div className="container mx-auto px-4 flex items-center justify-between">
+          {/* <div className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
               <span className="text-primary-foreground font-bold text-lg">G</span>
             </div>
@@ -107,9 +115,9 @@ const HomePage = () => {
               <h1 className="font-heading font-bold text-xl text-foreground">Glonix Electronics</h1>
               <p className="text-xs text-muted-foreground">PCB Solutions & EMS</p>
             </div>
-          </div>
+          </div> */}
 
-          <nav className="hidden md:flex items-center space-x-6">
+          {/* <nav className="hidden md:flex items-center space-x-6">
             <Button variant="ghost" onClick={() => router.push("/")}>
               Home
             </Button>
@@ -118,24 +126,10 @@ const HomePage = () => {
             </Button>
             <Button variant="ghost">Services</Button>
             <Button variant="ghost">Contact</Button>
-          </nav>
+          </nav> */}
 
-          <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
-              <Button variant="outline" onClick={() => router.push("/dashboard")}>
-                Dashboard
-              </Button>
-            ) : (
-              <>
-                <Button variant="ghost" onClick={() => router.push("/login")}>
-                  Login
-                </Button>
-                <Button onClick={() => router.push("/login")}>Get Started</Button>
-              </>
-            )}
-          </div>
+          
         </div>
-      </header>
 
       {/* Hero Section with 3D Animation */}
       <section ref={heroRef} className="relative overflow-hidden gradient-tech">
@@ -312,58 +306,6 @@ const HomePage = () => {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-card border-t border-border py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold">G</span>
-                </div>
-                <span className="font-heading font-bold text-lg">Glonix Electronics</span>
-              </div>
-              <p className="text-muted-foreground text-sm">
-                Professional PCB fabrication and assembly services since 2017.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Services</h4>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>PCB Fabrication</div>
-                <div>PCB Assembly</div>
-                <div>Component Sourcing</div>
-                <div>Custom Development</div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>About Us</div>
-                <div>Contact</div>
-                <div>Careers</div>
-                <div>Blog</div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Contact</h4>
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div>📞 78068 32035</div>
-                <div>📧 info@glonix.in</div>
-                <div>📍 Chennai, Tamil Nadu</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-border mt-8 pt-8 text-center text-sm text-muted-foreground">
-            <p>&copy; 2024 Glonix Electronics Private Limited. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

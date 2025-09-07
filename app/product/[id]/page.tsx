@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { getProductById, initializeEmptyData } from "@/lib/admin-utils"
 import { ShoppingCart, Heart, Star, Package, Truck, Shield, RefreshCw, Plus, Minus } from "lucide-react"
 
 interface Product {
@@ -35,68 +36,105 @@ function ProductDetailContent() {
   const [quantity, setQuantity] = useState(1)
   const [loading, setLoading] = useState(true)
 
-  // Sample product data - in real app, this would come from API
-  const sampleProduct: Product = {
-    id: params.id as string,
-    name: "Arduino Uno R3",
-    sku: "ARD-UNO-R3",
-    category: "Microcontrollers",
-    price: 25.99,
-    images: ["/arduino-uno-front.png", "/arduino-uno-back.png", "/arduino-uno-side.png"],
-    description: "Popular microcontroller board based on ATmega328P",
-    longDescription:
-      "The Arduino Uno R3 is a microcontroller board based on the ATmega328P. It has 14 digital input/output pins (of which 6 can be used as PWM outputs), 6 analog inputs, a 16 MHz ceramic resonator, a USB connection, a power jack, an ICSP header, and a reset button. It contains everything needed to support the microcontroller; simply connect it to a computer with a USB cable or power it with a AC-to-DC adapter or battery to get started.",
-    inStock: true,
-    stockQuantity: 150,
-    rating: 4.8,
-    reviews: 1250,
-    specifications: {
-      Microcontroller: "ATmega328P",
-      "Operating Voltage": "5V",
-      "Input Voltage (recommended)": "7-12V",
-      "Input Voltage (limit)": "6-20V",
-      "Digital I/O Pins": "14 (of which 6 provide PWM output)",
-      "PWM Digital I/O Pins": "6",
-      "Analog Input Pins": "6",
-      "DC Current per I/O Pin": "20 mA",
-      "DC Current for 3.3V Pin": "50 mA",
-      "Flash Memory": "32 KB (ATmega328P) of which 0.5 KB used by bootloader",
-      SRAM: "2 KB (ATmega328P)",
-      EEPROM: "1 KB (ATmega328P)",
-      "Clock Speed": "16 MHz",
-      LED_BUILTIN: "13",
-      Length: "68.6 mm",
-      Width: "53.4 mm",
-      Weight: "25 g",
-    },
-    features: [
-      "USB connectivity for easy programming",
-      "Built-in LED on pin 13",
-      "Reset button for easy restart",
-      "Power jack for external power supply",
-      "ICSP header for in-circuit programming",
-      "Compatible with Arduino IDE",
-      "Extensive library support",
-      "Large community and tutorials",
-    ],
-    applications: [
-      "IoT projects and prototyping",
-      "Educational electronics learning",
-      "Home automation systems",
-      "Robotics and motor control",
-      "Sensor data acquisition",
-      "LED lighting control",
-      "Temperature monitoring",
-      "Arduino shield compatibility",
-    ],
-  }
-
+  // Fetch product data from localStorage
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProduct(sampleProduct)
-      setLoading(false)
-    }, 1000)
+    const fetchProduct = () => {
+      try {
+        setLoading(true)
+        
+        // Initialize empty data structure
+        initializeEmptyData()
+        
+        // Get product from localStorage
+        const productData = getProductById(params.id as string)
+        
+        if (productData) {
+          // Map localStorage product to component interface
+          const mappedProduct: Product = {
+            id: productData.id,
+            name: productData.name,
+            sku: productData.sku,
+            category: productData.category,
+            price: productData.price,
+            images: productData.images || [productData.image].filter(Boolean),
+            description: productData.description,
+            longDescription: productData.long_description || "",
+            inStock: productData.inStock,
+            stockQuantity: productData.stock_quantity,
+            rating: productData.rating || 0,
+            reviews: productData.reviews || 0,
+            specifications: productData.specifications || {},
+            features: productData.features || [],
+            applications: productData.applications || [],
+          }
+          setProduct(mappedProduct)
+        } else {
+          // Fallback to sample data if product not found
+          setProduct({
+            id: params.id as string,
+            name: "Arduino Uno R3",
+            sku: "ARD-UNO-R3",
+            category: "Microcontrollers",
+            price: 25.99,
+            images: ["/arduino-uno-front.png", "/arduino-uno-back.png", "/arduino-uno-side.png"],
+            description: "Popular microcontroller board based on ATmega328P",
+            longDescription:
+              "The Arduino Uno R3 is a microcontroller board based on the ATmega328P. It has 14 digital input/output pins (of which 6 can be used as PWM outputs), 6 analog inputs, a 16 MHz ceramic resonator, a USB connection, a power jack, an ICSP header, and a reset button. It contains everything needed to support the microcontroller; simply connect it to a computer with a USB cable or power it with a AC-to-DC adapter or battery to get started.",
+            inStock: true,
+            stockQuantity: 150,
+            rating: 4.8,
+            reviews: 1250,
+            specifications: {
+              Microcontroller: "ATmega328P",
+              "Operating Voltage": "5V",
+              "Input Voltage (recommended)": "7-12V",
+              "Input Voltage (limit)": "6-20V",
+              "Digital I/O Pins": "14 (of which 6 provide PWM output)",
+              "PWM Digital I/O Pins": "6",
+              "Analog Input Pins": "6",
+              "DC Current per I/O Pin": "20 mA",
+              "DC Current for 3.3V Pin": "50 mA",
+              "Flash Memory": "32 KB (ATmega328P) of which 0.5 KB used by bootloader",
+              SRAM: "2 KB (ATmega328P)",
+              EEPROM: "1 KB (ATmega328P)",
+              "Clock Speed": "16 MHz",
+              LED_BUILTIN: "13",
+              Length: "68.6 mm",
+              Width: "53.4 mm",
+              Weight: "25 g",
+            },
+            features: [
+              "USB connectivity for easy programming",
+              "Built-in LED on pin 13",
+              "Reset button for easy restart",
+              "Power jack for external power supply",
+              "ICSP header for in-circuit programming",
+              "Compatible with Arduino IDE",
+              "Extensive library support",
+              "Large community and tutorials",
+            ],
+            applications: [
+              "IoT projects and prototyping",
+              "Educational electronics learning",
+              "Home automation systems",
+              "Robotics and motor control",
+              "Sensor data acquisition",
+              "LED lighting control",
+              "Temperature monitoring",
+              "Arduino shield compatibility",
+            ],
+          })
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    if (params.id) {
+      fetchProduct()
+    }
   }, [params.id])
 
   const addToCart = () => {
@@ -172,9 +210,8 @@ function ProductDetailContent() {
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
-                  className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${
-                    selectedImage === index ? "border-cyan-500" : "border-gray-200"
-                  }`}
+                  className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-colors ${selectedImage === index ? "border-cyan-500" : "border-gray-200"
+                    }`}
                 >
                   <img
                     src={image || "/placeholder.svg"}
@@ -200,9 +237,8 @@ function ProductDetailContent() {
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`h-5 w-5 ${
-                        i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
-                      }`}
+                      className={`h-5 w-5 ${i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
+                        }`}
                     />
                   ))}
                 </div>

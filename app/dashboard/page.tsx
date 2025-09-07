@@ -65,9 +65,36 @@ function DashboardContent() {
     // Load user statistics from localStorage
     const loadStats = () => {
       try {
-        const orders = JSON.parse(localStorage.getItem("orders") || "[]")
-        const cart = JSON.parse(localStorage.getItem("cart") || "[]")
         const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]")
+
+        // Load user-specific orders and cart
+        const userData = localStorage.getItem("current_user")
+        let cartItems = 0
+        let orders: any[] = []
+        
+        if (userData) {
+          try {
+            const user = JSON.parse(userData)
+            const userId = user.id
+            const cartKey = `cart_${userId}`
+            const ordersKey = `orders_${userId}`
+            
+            // Load user-specific cart
+            const storedCart = localStorage.getItem(cartKey)
+            if (storedCart) {
+              const parsedCart = JSON.parse(storedCart)
+              cartItems = Array.isArray(parsedCart) ? parsedCart.length : 1
+            }
+            
+            // Load user-specific orders
+            const storedOrders = localStorage.getItem(ordersKey)
+            if (storedOrders) {
+              orders = JSON.parse(storedOrders)
+            }
+          } catch (error) {
+            console.error("Failed to load user data:", error)
+          }
+        }
 
         const totalOrders = orders.length
         const pendingOrders = orders.filter((o: any) =>
@@ -75,14 +102,20 @@ function DashboardContent() {
         ).length
         const completedOrders = orders.filter((o: any) => o.status === "delivered").length
         const totalSpent = orders.reduce((sum: number, order: any) => sum + order.total, 0)
-        const recentOrders = orders.slice(-5).reverse()
+        const recentOrders = orders.slice(-5).reverse().map((order: any) => ({
+          id: order.id,
+          status: order.status,
+          total: order.total,
+          createdAt: order.created_at,
+          items: order.items.length
+        }))
 
         setStats({
           totalOrders,
           pendingOrders,
           completedOrders,
           totalSpent,
-          cartItems: cart.length,
+          cartItems,
           wishlistItems: wishlist.length,
           recentOrders,
         })
@@ -194,7 +227,7 @@ function DashboardContent() {
         {/* Welcome Section */}
         <div className="mb-8">
           <h1 className="font-heading font-bold text-3xl text-slate-900 mb-2">
-            Welcome back, {user?.name || user?.full_name}!
+            Welcome back, {user?.full_name}!
           </h1>
           <p className="text-slate-600">Here's what's happening with your account today.</p>
         </div>
@@ -330,10 +363,8 @@ function DashboardContent() {
                             <div>
                               <p className="font-medium text-slate-900">#{order.id}</p>
                               <p className="text-sm text-slate-600">
-                                {order.items.length} item{order.items.length !== 1 ? "s" : ""} •{" "}
+                                {order.items} item{order.items !== 1 ? "s" : ""} •{" "}
                                 {new Date(order.createdAt).toLocaleDateString()}
-                                <br />
-                                {order.items.map((item) => item.name).join(", ")}
                               </p>
 
                             </div>
@@ -443,7 +474,7 @@ function DashboardContent() {
                   <div className="mx-auto w-20 h-20 bg-gradient-to-br from-cyan-600 to-cyan-800 rounded-2xl flex items-center justify-center mb-4">
                     <User className="h-10 w-10 text-white" />
                   </div>
-                  <CardTitle className="font-heading text-xl text-slate-900">{user?.name || user?.full_name}</CardTitle>
+                  <CardTitle className="font-heading text-xl text-slate-900">{user?.full_name}</CardTitle>
                   <CardDescription className="text-slate-600">{user?.email}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

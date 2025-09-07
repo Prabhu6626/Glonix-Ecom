@@ -8,25 +8,17 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { useCart } from "@/hooks/use-cart"
+import { useWishlist } from "@/hooks/use-wishlist"
+import { getAllProducts, initializeEmptyData } from "@/lib/admin-utils"
+import type { Product } from "@/lib/types"
 import { Search, Grid, List, ShoppingCart, Heart, Star, Package, Zap, Cpu, Wrench } from "lucide-react"
-
-interface Product {
-  id: string
-  name: string
-  sku: string
-  category: string
-  price: number
-  image: string
-  description: string
-  inStock: boolean
-  rating: number
-  reviews: number
-  specifications: Record<string, string>
-}
 
 function ProductCatalogContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { addItem: addToCart } = useCart()
+  const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlist()
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "")
@@ -34,124 +26,6 @@ function ProductCatalogContent() {
   const [sortBy, setSortBy] = useState("name")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [loading, setLoading] = useState(true)
-
-  // Sample product data - in real app, this would come from API
-  const sampleProducts: Product[] = [
-    {
-      id: "1",
-      name: "Arduino Uno R3",
-      sku: "ARD-UNO-R3",
-      category: "Microcontrollers",
-      price: 25.99,
-      image: "/placeholder-abmlq.png",
-      description: "Popular microcontroller board based on ATmega328P",
-      inStock: true,
-      rating: 4.8,
-      reviews: 1250,
-      specifications: {
-        Microcontroller: "ATmega328P",
-        "Operating Voltage": "5V",
-        "Digital I/O Pins": "14",
-        "Analog Input Pins": "6",
-        "Flash Memory": "32KB",
-      },
-    },
-    {
-      id: "2",
-      name: "Raspberry Pi 4 Model B",
-      sku: "RPI-4B-4GB",
-      category: "Single Board Computers",
-      price: 75.0,
-      image: "/raspberry-pi-4-board.png",
-      description: "Powerful single-board computer with 4GB RAM",
-      inStock: true,
-      rating: 4.9,
-      reviews: 2100,
-      specifications: {
-        CPU: "Quad-core ARM Cortex-A72",
-        RAM: "4GB LPDDR4",
-        Storage: "MicroSD",
-        Connectivity: "WiFi, Bluetooth, Ethernet",
-        "USB Ports": "2x USB 3.0, 2x USB 2.0",
-      },
-    },
-    {
-      id: "3",
-      name: "ESP32 Development Board",
-      sku: "ESP32-DEV-KIT",
-      category: "Microcontrollers",
-      price: 12.5,
-      image: "/esp32-microcontroller.png",
-      description: "WiFi and Bluetooth enabled microcontroller",
-      inStock: true,
-      rating: 4.7,
-      reviews: 890,
-      specifications: {
-        CPU: "Dual-core Xtensa LX6",
-        WiFi: "802.11 b/g/n",
-        Bluetooth: "v4.2 BR/EDR and BLE",
-        "GPIO Pins": "30",
-        "Flash Memory": "4MB",
-      },
-    },
-    {
-      id: "4",
-      name: "STM32F103C8T6 Blue Pill",
-      sku: "STM32-BLUEPILL",
-      category: "Microcontrollers",
-      price: 8.99,
-      image: "/stm32-blue-pill.png",
-      description: "ARM Cortex-M3 development board",
-      inStock: false,
-      rating: 4.5,
-      reviews: 650,
-      specifications: {
-        CPU: "ARM Cortex-M3",
-        "Clock Speed": "72MHz",
-        "Flash Memory": "64KB",
-        RAM: "20KB",
-        "GPIO Pins": "37",
-      },
-    },
-    {
-      id: "5",
-      name: "Breadboard 830 Points",
-      sku: "BB-830-WHITE",
-      category: "Prototyping",
-      price: 5.99,
-      image: "/placeholder-48jcx.png",
-      description: "Solderless breadboard for prototyping",
-      inStock: true,
-      rating: 4.3,
-      reviews: 420,
-      specifications: {
-        "Tie Points": "830",
-        Size: "165 x 55mm",
-        Material: "ABS Plastic",
-        Color: "White",
-        "Contact Rating": "1A @ 5VDC",
-      },
-    },
-    {
-      id: "6",
-      name: "Jumper Wire Set",
-      sku: "JW-MM-40PCS",
-      category: "Prototyping",
-      price: 3.5,
-      image: "/placeholder-zjlb1.png",
-      description: "40pcs Male to Male jumper wires",
-      inStock: true,
-      rating: 4.2,
-      reviews: 310,
-      specifications: {
-        Length: "20cm",
-        "Wire Gauge": "26AWG",
-        Connector: "Male to Male",
-        Quantity: "40 pieces",
-        Colors: "Assorted",
-      },
-    },
-  ]
 
   const categories = [
     { value: "all", label: "All Categories", icon: <Package className="h-4 w-4" /> },
@@ -161,12 +35,14 @@ function ProductCatalogContent() {
   ]
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProducts(sampleProducts)
-      setFilteredProducts(sampleProducts)
-      setLoading(false)
-    }, 1000)
+    // Initialize empty data and load real products from admin system
+    initializeEmptyData()
+
+    const realProducts = getAllProducts()
+    setProducts(realProducts)
+    setFilteredProducts(realProducts)
+    console.log(realProducts)
+    setLoading(false)
   }, [])
 
   useEffect(() => {
@@ -205,18 +81,32 @@ function ProductCatalogContent() {
     setFilteredProducts(filtered)
   }, [products, searchQuery, selectedCategory, sortBy])
 
-  const addToCart = (product: Product) => {
-    // Add to cart logic
-    console.log("Adding to cart:", product)
-    // Update cart count in localStorage
-    const cart = JSON.parse(localStorage.getItem("cart") || "[]")
-    cart.push(product)
-    localStorage.setItem("cart", JSON.stringify(cart))
+  const handleAddToCart = (product: Product) => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      price: product.price,
+      image: product.image,
+      inStock: product.stock_quantity > 0,
+    })
   }
 
-  const addToWishlist = (product: Product) => {
-    // Add to wishlist logic
-    console.log("Adding to wishlist:", product)
+  const handleWishlistToggle = (product: Product) => {
+    if (isInWishlist(product.id)) {
+      removeFromWishlist(product.id)
+    } else {
+      addToWishlist({
+        id: product.id,
+        name: product.name,
+        sku: product.sku,
+        price: product.price,
+        image: product.image,
+        inStock: product.stock_quantity > 0,
+        rating: 4.5, // Default rating since not in Product type
+        reviews: 0, // Default reviews since not in Product type
+      })
+    }
   }
 
   if (loading) {
@@ -328,19 +218,25 @@ function ProductCatalogContent() {
               <div className={viewMode === "list" ? "w-48 flex-shrink-0" : ""}>
                 <div className="relative">
                   <img
-                    src={product.image || "/placeholder.svg"}
+                    src={product.images?.[0] || "/placeholder.svg?height=192&width=320&query=product image"}
                     alt={product.name}
                     className={`w-full object-cover ${viewMode === "list" ? "h-32" : "h-48"} rounded-t-lg`}
                   />
-                  {!product.inStock && <Badge className="absolute top-2 left-2 bg-red-500">Out of Stock</Badge>}
+                  {product.stock_quantity === 0 && (
+                    <Badge className="absolute top-2 left-2 bg-red-500">Out of Stock</Badge>
+                  )}
                   <div className="absolute top-2 right-2 flex gap-1">
                     <Button
                       size="sm"
-                      variant="secondary"
-                      className="h-8 w-8 p-0"
-                      onClick={() => addToWishlist(product)}
+                      variant={isInWishlist(product.id) ? "default" : "secondary"}
+                      className={`h-8 w-8 p-0 ${
+                        isInWishlist(product.id)
+                          ? "bg-red-500 hover:bg-red-600 text-white"
+                          : "bg-white hover:bg-gray-100"
+                      }`}
+                      onClick={() => handleWishlistToggle(product)}
                     >
-                      <Heart className="h-4 w-4" />
+                      <Heart className={`h-4 w-4 ${isInWishlist(product.id) ? "fill-current" : ""}`} />
                     </Button>
                   </div>
                 </div>
@@ -367,15 +263,11 @@ function ProductCatalogContent() {
                       {[...Array(5)].map((_, i) => (
                         <Star
                           key={i}
-                          className={`h-4 w-4 ${
-                            i < Math.floor(product.rating) ? "text-yellow-400 fill-current" : "text-gray-300"
-                          }`}
+                          className={`h-4 w-4 ${i < 4 ? "text-yellow-400 fill-current" : "text-gray-300"}`}
                         />
                       ))}
                     </div>
-                    <span className="text-sm text-slate-600">
-                      {product.rating} ({product.reviews} reviews)
-                    </span>
+                    <span className="text-sm text-slate-600">4.5 (0 reviews)</span>
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -386,8 +278,8 @@ function ProductCatalogContent() {
                       </Button>
                       <Button
                         size="sm"
-                        onClick={() => addToCart(product)}
-                        disabled={!product.inStock}
+                        onClick={() => handleAddToCart(product)}
+                        disabled={product.stock_quantity === 0}
                         className="bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800"
                       >
                         <ShoppingCart className="h-4 w-4 mr-1" />
@@ -405,7 +297,11 @@ function ProductCatalogContent() {
           <div className="text-center py-12">
             <Package className="h-16 w-16 text-slate-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-slate-900 mb-2">No products found</h3>
-            <p className="text-slate-600">Try adjusting your search or filter criteria</p>
+            <p className="text-slate-600">
+              {products.length === 0
+                ? "No products have been added yet. Admin can add products from the admin dashboard."
+                : "Try adjusting your search or filter criteria"}
+            </p>
           </div>
         )}
       </div>
